@@ -1,4 +1,4 @@
-name: Run Tests
+name: Run Medibook E2E Tests
 
 on:
   push:
@@ -7,42 +7,59 @@ on:
   pull_request:
 
 jobs:
-  test:
+  e2e-tests:
     runs-on: ubuntu-latest
-    services:
-      docker:
-        image: docker:24.0.5
-        options: --privileged
-        ports:
-          - 2375:2375
 
     steps:
+      # 1️⃣ Checkout du code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Docker Compose
-        run: docker-compose -f docker-compose.yml up -d db api frontend mailhog
+      # 2️⃣ Installer Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
-      - name: Wait for DB to be ready
+      # 3️⃣ Lancer les services Docker (DB, API, Frontend, Mailhog)
+      - name: Start Docker services
         run: |
-          echo "Waiting for PostgreSQL..."
-          until docker exec medibook-db pg_isready -U medibook; do
-            sleep 2
+          docker compose -f docker-compose.yml up -d db api frontend mailhog
+          echo "Waiting for API to be ready..."
+          retries=15
+          until docker compose exec -T api curl -f http://localhost:4000/api/health || [ $retries -eq 0 ]; do
+            echo "Waiting 5s..."
+            sleep 5
+            retries=$((retries-1))
           done
+
+      # 4️⃣ Installer Python et dépendances
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
 
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r backend/requirements.txt
+          pip install -r backend/tests/requirements.txt
+          # Installer Selenium et le driver Chrome
+          pip install selenium webdriver-manager
 
-      - name: Run tests
-        env:
-          FRONTEND_URL: http://frontend:3000   # URL interne Docker
-          API_URL: http://api:4000/api          # URL interne Docker
+      # 5️⃣ Installer Google Chrome pour Selenium
+      - name: Install Google Chrome
         run: |
-          cd backend
-          pytest -v --tb=short
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
-      - name: Tear down
+      # 6️⃣ Lancer les tests E2E avec Chrome Headless
+      - name: Run E2E Tests
+        env:
+          FRONTEND_URL: http://frontend:3000
+        run: |
+          export CHROME_BIN=/usr/bin/google-chrome
+          pytest backend/tests/test_scenarios.py -v --tb=short \
+            --driver Chrome --headless
+
+      # 7️⃣ Nettoyer les conteneurs Docker
+      - name: Shutdown Docker Compose
         if: always()
-        run: docker-compose -f docker-compose.yml down -v
+        run: docker compose -f docker-compose.yml down -v
