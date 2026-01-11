@@ -7,7 +7,7 @@ from webdriver_manager.firefox import GeckoDriverManager
 @pytest.fixture(scope="function")
 def browser():
     options = Options()
-    options.headless = True  
+    options.headless = True  # Mode headless pour CI
     service = Service(GeckoDriverManager().install())
     driver = webdriver.Firefox(service=service, options=options)
     yield driver

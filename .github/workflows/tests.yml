@@ -11,54 +11,65 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1Checkout
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Setup Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # Install Python dependencies
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Install Docker Compose
       - name: Install Docker Compose
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
 
-      # Install Firefox for Selenium
-      - name: Install Firefox
+      - name: Install Firefox dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y firefox
+          sudo apt-get install -y \
+            firefox \
+            libgtk-3-0 \
+            libdbus-glib-1-2 \
+            libxt6 \
+            libx11-xcb1 \
+            libxcb1 \
+            libxcomposite1 \
+            libxdamage1 \
+            libxrandr2 \
+            libasound2 \
+            libpangocairo-1.0-0 \
+            libatk1.0-0 \
+            libnss3 \
+            libgconf-2-4 \
+            libxss1 \
+            libxrender1 \
+            libglib2.0-0 \
+            fonts-liberation \
+            libappindicator3-1 \
+            xvfb
 
-      # Start MediBook
       - name: Start MediBook (Docker)
         run: |
           docker-compose up -d
-          sleep 15  # attendre que les services soient prêts
+          sleep 15
 
-      # Run E2E tests
       - name: Run E2E tests
         run: |
           mkdir -p reports
-          pytest --maxfail=1 --disable-warnings -v --html=reports/report.html --self-contained-html
+          xvfb-run -a pytest --maxfail=1 --disable-warnings -v --html=reports/report.html --self-contained-html
 
-      # Upload test report
       - name: Upload test report
         uses: actions/upload-artifact@v4
         with:
           name: e2e-test-report
           path: reports/report.html
 
-      # Stop MediBook
       - name: Stop MediBook
         run: |
           docker-compose down
