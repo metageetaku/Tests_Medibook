@@ -4,11 +4,10 @@ from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options
 
 @pytest.fixture
-def driver():
+def browser():
     options = Options()
-    options.headless = True  # True = pas de fenêtre, parfait pour CI
-    # Sur Windows GitHub runner, Firefox est déjà dans le PATH
-    service = Service()  # Selenium trouvera geckodriver automatiquement
+    options.headless = True
+    service = Service()
     driver = webdriver.Firefox(service=service, options=options)
     yield driver
     driver.quit()
