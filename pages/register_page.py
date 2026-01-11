@@ -7,14 +7,11 @@ class RegisterPage:
     def __init__(self, browser, base_url):
         self.browser = browser
         self.base_url = base_url
-
-    def open(self):
-        self.browser.get(f"{self.base_url}/register")
-
+        self.wait = WebDriverWait(browser, 10)
 
     def open(self):
         """Ouvre la page d'inscription"""
-        self.browser.get("http://localhost:3000/register")
+        self.browser.get(f"{self.base_url}/register")
         self.wait.until(EC.presence_of_element_located((By.ID, "firstName")))
 
     def fill_form(self, first, last, email, password):

@@ -7,14 +7,11 @@ class SearchPage:
     def __init__(self, browser, base_url):
         self.browser = browser
         self.base_url = base_url
-
-    def open(self):
-        self.browser.get(f"{self.base_url}/search")
-
+        self.wait = WebDriverWait(browser, 10)
 
     def open(self):
         """Ouvre la page de recherche"""
-        self.browser.get("http://localhost:3000/search")
+        self.browser.get(f"{self.base_url}/search")
         self.wait.until(EC.presence_of_element_located((By.ID, "specialty")))
 
     def select_specialty(self, text):
