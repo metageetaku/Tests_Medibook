@@ -1,14 +1,18 @@
-from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
 import pytest
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import chromedriver_autoinstaller
 
 @pytest.fixture
 def browser():
+    # Installe automatiquement le ChromeDriver compatible
+    chromedriver_autoinstaller.install()
+
     options = Options()
-    options.headless = True
-    driver = webdriver.Remote(
-        command_executor="http://selenium:4444/wd/hub",  # nom du service Selenium
-        options=options
-    )
+    options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+
+    driver = webdriver.Chrome(options=options)
     yield driver
     driver.quit()
