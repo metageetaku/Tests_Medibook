@@ -48,7 +48,7 @@ jobs:
           FRONTEND_URL: http://frontend:3000
           SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub
         run: |
-          python -m pytest backend/tests/test_scenarios.py -v --tb=short
+          python -m pytest test_scenarios.py -v --tb=short
 
       - name: Shut down Docker Compose services
         if: always()
