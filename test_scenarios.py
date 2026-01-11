@@ -1,7 +1,7 @@
 from pages.search_page import SearchPage
-from selenium.webdriver.common.by import By
 from pages.register_page import RegisterPage
 from pages.practitioner_page import PractitionerPage
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
@@ -9,29 +9,22 @@ from selenium.webdriver.support import expected_conditions as EC
 # URL du frontend dans le réseau Docker
 FRONTEND_URL = "http://frontend:3000"
 
+
 def test_inscription_reussie(browser: WebDriver):
     """Test 1 : Inscription réussie"""
 
-    register = RegisterPage(browser)
+    register = RegisterPage(browser, FRONTEND_URL)
+    register.open()
 
-    # Ouvrir la page d'inscription
-    register.open(FRONTEND_URL)
-
-    # Remplir le formulaire
     register.fill_form(
         "Test",
         "Automatise",
         "test.auto@email.com",
         "Password123!"
     )
-
-    # Accepter les CGU
     register.accept_terms()
-
-    # Soumettre le formulaire
     register.submit()
 
-    # Vérifier le message de succès
     message = register.get_message()
     assert "Compte créé avec succès" in message, f"Message inattendu: {message}"
 
@@ -39,8 +32,8 @@ def test_inscription_reussie(browser: WebDriver):
 def test_email_deja_utilise(browser: WebDriver):
     """Test 2 : Email déjà utilisé"""
 
-    register = RegisterPage(browser)
-    register.open(FRONTEND_URL)
+    register = RegisterPage(browser, FRONTEND_URL)
+    register.open()
 
     register.fill_form(
         "Test",
@@ -58,8 +51,8 @@ def test_email_deja_utilise(browser: WebDriver):
 def test_recherche_praticien_par_specialite_et_ville(browser: WebDriver):
     """Recherche par spécialité et ville"""
 
-    search = SearchPage(browser)
-    search.open(FRONTEND_URL)
+    search = SearchPage(browser, FRONTEND_URL)
+    search.open()
 
     search.select_specialty("Médecin généraliste")
     search.enter_city("Paris")
@@ -80,8 +73,8 @@ def test_recherche_praticien_par_specialite_et_ville(browser: WebDriver):
 def test_recherche_praticien_sans_resultat(browser: WebDriver):
     """Recherche sans résultat"""
 
-    search = SearchPage(browser)
-    search.open(FRONTEND_URL)
+    search = SearchPage(browser, FRONTEND_URL)
+    search.open()
 
     search.select_specialty("Cardiologue")
     search.enter_city("Titikaka")
@@ -112,8 +105,8 @@ def test_reservation_creneau(browser: WebDriver):
     wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#hero-title")))
 
     # --- Page du praticien ---
-    practitioner = PractitionerPage(browser)
-    practitioner.open("00111111-1111-1111-1111-111111111111", FRONTEND_URL)
+    practitioner = PractitionerPage(browser, FRONTEND_URL)
+    practitioner.open("00111111-1111-1111-1111-111111111111")
 
     practitioner.select_day()
     practitioner.select_slot()
