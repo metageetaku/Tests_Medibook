@@ -1,4 +1,4 @@
-name: Run E2E Tests
+name: Run Selenium Tests
 
 on:
   push:
@@ -7,23 +7,17 @@ on:
   pull_request:
 
 jobs:
-  e2e-tests:
+  selenium-tests:
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgres:15-alpine
+      # Selenium standalone Chrome pour exécuter les tests
+      selenium:
+        image: selenium/standalone-chrome:115.0
         ports:
-          - 5432:5432
-        env:
-          POSTGRES_USER: medibook
-          POSTGRES_PASSWORD: medibook123
-          POSTGRES_DB: medibook
+          - 4444:4444
         options: >-
-          --health-cmd="pg_isready -U medibook -d medibook"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=5
-
+          --shm-size=2g
+        # Pas besoin de volumes ici
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -33,21 +27,29 @@ jobs:
         with:
           python-version: 3.11
 
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r backend/tests/requirements.txt
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
-      - name: Set up Docker Compose
-        uses: docker/setup-buildx-action@v2
+      - name: Install test requirements
+        run: python -m pip install -r backend/tests/requirements.txt
 
-      - name: Build and start Docker Compose services
-        run: |
-          docker-compose -f docker-compose.yml up -d db api frontend mailhog
-          # Attendre que le backend et la base soient prêts
-          docker-compose exec -T api sh -c "npx wait-on http://localhost:4000/api"
+      - name: Start Docker Compose services
+        run: docker compose -f docker-compose.yml up -d db api frontend mailhog
 
-      - name: Run E2E Tests
+      - name: Wait for API to be ready
         run: |
-          # Lancer pytest avec le navigateur configuré
-          pytest -v backend/tests --tb=short
+          echo "Waiting for API to be ready..."
+          until curl -s http://localhost:4000/health; do
+            sleep 5
+          done
+
+      - name: Run Selenium tests
+        env:
+          FRONTEND_URL: http://frontend:3000
+          SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub
+        run: |
+          python -m pytest backend/tests/test_scenarios.py -v --tb=short
+
+      - name: Shut down Docker Compose services
+        if: always()
+        run: docker compose -f docker-compose.yml down -v

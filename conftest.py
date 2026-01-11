@@ -1,15 +1,16 @@
-import pytest
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+import os
+import pytest
 
 @pytest.fixture
 def browser():
-    options = Options()
-    options.add_argument("--headless=new")  # Mode headless
-    options.add_argument("--no-sandbox")    # GitHub Actions spécifique
-    options.add_argument("--disable-dev-shm-usage")  # GitHub Actions spécifique
+    chrome_options = Options()
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
 
-    driver = webdriver.Chrome(options=options)
+    selenium_url = os.environ.get("SELENIUM_REMOTE_URL", "http://localhost:4444/wd/hub")
+    driver = webdriver.Remote(command_executor=selenium_url, options=chrome_options)
     yield driver
     driver.quit()
