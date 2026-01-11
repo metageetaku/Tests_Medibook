@@ -1,41 +1,50 @@
-name: Selenium Tests
+name: Selenium Python Tests
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
 
 jobs:
-  test:
+  selenium-tests:
     runs-on: ubuntu-latest
 
+    services:
+      firefox:
+        image: selenium/standalone-firefox:latest
+        ports:
+          - 4444:4444
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Start Docker services
-      run: |
-        docker-compose up -d
-        # Attendre que le serveur soit prêt
-        for i in {1..30}; do
-          if curl -s http://localhost:3000/ > /dev/null; then
-            echo "Server ready!"
-            break
-          fi
-          echo "Waiting for server..."
-          sleep 2
-        done
+      - name: Start Docker services
+        run: |
+          docker compose up -d
+          echo "Waiting for server to be ready..."
+          for i in {1..30}; do
+            if curl -s http://localhost:3000/ > /dev/null; then
+              echo "Server ready!"
+              break
+            fi
+            echo "Waiting..."
+            sleep 2
+          done
 
-    - name: Run Selenium tests
-      run: |
-        pytest --maxfail=1 --disable-warnings -v
+      - name: Run Selenium tests
+        env:
+          SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub
+        run: |
+          pytest -v --tb=short
