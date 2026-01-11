@@ -1,4 +1,4 @@
-name: Run Medibook Tests
+name: CI Medibook
 
 on:
   push:
@@ -9,7 +9,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     services:
       selenium:
         image: selenium/standalone-firefox:latest
@@ -17,37 +16,39 @@ jobs:
           - 4444:4444
 
     steps:
-      # 1️⃣ Checkout du repo
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2️⃣ Setup Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: 3.11
 
-      # 3️⃣ Installer les dépendances
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r backend/requirements.txt
           pip install selenium pytest pytest-html
 
-      # 4️⃣ Lancer la DB avec Docker Compose
-      - name: Start Docker Compose
-        run: docker-compose up -d db mailhog api frontend
-        # Ne lance pas Selenium ici, il est déjà comme service
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
 
-      # 5️⃣ Attendre que la DB soit prête
-      - name: Wait for PostgreSQL
+      - name: Start services
         run: |
-          echo "Waiting for DB..."
-          sleep 15
+          docker compose -f docker-compose.yml up -d db mailhog api frontend
+          # attendre que PostgreSQL soit prêt
+          echo "Waiting for PostgreSQL..."
+          until docker compose exec db pg_isready -U medibook -d medibook; do
+            sleep 2
+          done
+          echo "PostgreSQL ready."
 
-      # 6️⃣ Lancer les tests
       - name: Run tests
         env:
-          DATABASE_URL: postgresql://medibook:medibook123@localhost:5432/medibook
-          FRONTEND_URL: http://localhost:3000
-        run: pytest -v --tb=short
+          SELENIUM_URL: http://selenium:4444/wd/hub
+        run: |
+          pytest -v --tb=short
+
+      - name: Tear down
+        if: always()
+        run: docker compose down
