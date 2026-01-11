@@ -1,16 +1,22 @@
+import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import os
-import pytest
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def browser():
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
+    options = Options()
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--headless=new")
 
-    selenium_url = os.environ.get("SELENIUM_REMOTE_URL", "http://localhost:4444/wd/hub")
-    driver = webdriver.Remote(command_executor=selenium_url, options=chrome_options)
+    driver = webdriver.Remote(
+        command_executor="http://localhost:4444/wd/hub",
+        options=options
+    )
+
     yield driver
     driver.quit()
+
+@pytest.fixture
+def base_url():
+    return "http://host.docker.internal:3000"

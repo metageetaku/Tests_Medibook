@@ -44,7 +44,7 @@ jobs:
 
       - name: Run Selenium tests
         env:
-          FRONTEND_URL: http://localhost:3000
+          FRONTEND_URL: http://host.docker.internal:3000
           SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub
         run: |
           python -m pytest test_scenarios.py -v --tb=short
