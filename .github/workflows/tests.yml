@@ -2,59 +2,66 @@ name: Run Selenium Tests
 
 on:
   push:
-    branches:
+    branches: 
       - main
   pull_request:
+    branches: 
+      - main
 
 jobs:
   selenium-tests:
     runs-on: ubuntu-latest
-    services:
-      docker:
-        image: docker:24-dind
-        options: --privileged
-        ports:
-          - 2375:2375
 
     steps:
+      # 1. Checkout du code
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Docker Compose
-        uses: docker/setup-buildx-action@v2
-
-      - name: Start services with Docker Compose
+      # 2. Vérifier Docker et Docker Compose
+      - name: Check Docker and Docker Compose
         run: |
-          docker-compose -f docker-compose.yml up -d
-          # Attendre que le frontend soit prêt
-          echo "Waiting for frontend..."
-          timeout=60
-          while ! curl -s http://localhost:3000 > /dev/null; do
-            sleep 2
-            timeout=$((timeout-2))
-            if [ $timeout -le 0 ]; then
-              echo "Frontend not responding after 60s"
-              exit 1
-            fi
-          done
-          echo "Frontend is ready"
+          docker --version
+          docker compose version || echo "Docker Compose v2 intégré"
 
+      # 3. Build et démarrer les services avec Docker Compose
+      - name: Start Docker Compose services
+        run: |
+          docker compose -f docker-compose.yml up -d
+          docker compose -f docker-compose.yml ps
+
+      # 4. Attendre que l'API et le frontend soient prêts
+      - name: Wait for services
+        run: |
+          echo "Waiting for backend..."
+          until curl -s http://localhost:4000/health > /dev/null; do
+            sleep 5
+          done
+          echo "Backend is ready!"
+          echo "Waiting for frontend..."
+          until curl -s http://localhost:3000 > /dev/null; do
+            sleep 5
+          done
+          echo "Frontend is ready!"
+
+      # 5. Configurer Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
+      # 6. Installer les dépendances Python
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # 7. Lancer les tests Selenium
       - name: Run Selenium tests
-        env:
-          FRONTEND_URL: http://frontend:3000
         run: |
           pytest -v --tb=short
 
-      - name: Tear down Docker Compose
+      # 8. Stop et nettoyer Docker Compose
+      - name: Stop Docker Compose
         if: always()
-        run: docker-compose down
+        run: |
+          docker compose -f docker-compose.yml down --volumes
