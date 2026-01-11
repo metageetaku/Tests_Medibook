@@ -16,7 +16,7 @@ jobs:
           - 4444:4444
         options: >-
           --shm-size=2g
-          --network=selenium_net
+          --network=medibook-network
 
     steps:
       - name: Checkout code
