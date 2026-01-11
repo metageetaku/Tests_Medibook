@@ -58,14 +58,11 @@ services:
     environment:
       REACT_APP_API_URL: http://api:4000/api
       CHOKIDAR_USEPOLLING: "true"
-      HOST: 0.0.0.0   # <-- indispensable pour exposer React dans Docker
+      HOST: 0.0.0.0   # indispensable pour exposer React dans Docker
     ports:
       - "3000:3000"
     depends_on:
       - api
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     networks:
       - medibook-network
 
