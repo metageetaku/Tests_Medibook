@@ -16,7 +16,6 @@ jobs:
           - 4444:4444
         options: >-
           --shm-size=2g
-          --network=medibook-network
 
     steps:
       - name: Checkout code
@@ -31,7 +30,7 @@ jobs:
         run: python -m pip install -r backend/tests/requirements.txt
 
       - name: Start Docker Compose services
-        run: docker compose -f docker-compose.yml up -d
+        run: docker compose -f pages/docker-compose.yml up -d
 
       - name: Wait for API to be ready
         run: |
@@ -45,11 +44,11 @@ jobs:
 
       - name: Run Selenium tests
         env:
-          FRONTEND_URL: http://frontend:3000
+          FRONTEND_URL: http://localhost:3000
           SELENIUM_REMOTE_URL: http://localhost:4444/wd/hub
         run: |
-          python -m pytest test_scenarios.py -v --tb=short
+          python -m pytest pages/test_scenarios.py -v --tb=short
 
       - name: Shut down Docker Compose services
         if: always()
-        run: docker compose -f docker-compose.yml down -v
+        run: docker compose -f pages/docker-compose.yml down -v
