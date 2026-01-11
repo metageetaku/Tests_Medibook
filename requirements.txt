@@ -1,5 +1,7 @@
 pytest
 selenium
-pytest-html
 webdriver-manager
+pytest-html
 docker
+docker-compose
+requests

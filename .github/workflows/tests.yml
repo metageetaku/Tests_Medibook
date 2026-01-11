@@ -7,34 +7,19 @@ on:
     branches: [ main ]
 
 jobs:
-  e2e-tests:
+  test:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout du dépôt
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup Python
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
-      # 3️⃣ Installer les dépendances Python
-      - name: Install Python dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      # 4️⃣ Installer Docker Compose
-      - name: Install Docker Compose
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y docker-compose
-
-      # 5️⃣ Installer Firefox et librairies nécessaires pour headless
-      - name: Install Firefox dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -55,28 +40,36 @@ jobs:
             libglib2.0-0 \
             fonts-liberation \
             libappindicator3-1 \
-            xvfb
+            xvfb \
+            curl \
+            docker-compose
 
-      # 6️⃣ Lancer MediBook avec Docker Compose
-      - name: Start MediBook (Docker)
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install webdriver-manager pytest-html
+
+      - name: Start MediBook backend/frontend
         run: |
           docker-compose up -d
-          sleep 15  # attendre que les services soient prêts
+          # Wait for API to be ready (max 30s)
+          timeout=30
+          until curl -s http://localhost:4000/api-docs || [ $timeout -le 0 ]; do
+            sleep 1
+            timeout=$((timeout-1))
+          done
 
-      # 7️⃣ Exécuter les tests Selenium avec Firefox headless
-      - name: Run E2E tests
+      - name: Create reports folder
+        run: mkdir -p reports
+
+      - name: Run tests with pytest
         run: |
-          mkdir -p reports
-          xvfb-run -a pytest --maxfail=1 --disable-warnings -v --html=reports/report.html --self-contained-html
+          xvfb-run pytest --maxfail=1 --disable-warnings -v \
+            --html=reports/report.html --self-contained-html
 
-      # 8️⃣ Upload du rapport HTML
       - name: Upload test report
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-report
+          name: test-report
           path: reports/report.html
-
-      # 9️⃣ Arrêter les conteneurs Docker
-      - name: Stop MediBook
-        run: |
-          docker-compose down
