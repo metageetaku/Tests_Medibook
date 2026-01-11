@@ -2,68 +2,59 @@ name: Selenium Firefox Tests
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 jobs:
-  e2e-tests:
+  test:
     runs-on: ubuntu-latest
 
     services:
-      # Service Docker pour Node.js (ton appli)
-      web:
-        image: node:18-bullseye
+      firefox:
+        image: selenium/standalone-firefox:latest
         ports:
-          - 3000:3000
-        options: >-
-          --health-cmd "curl -f http://localhost:3000/ || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 30
+          - 4444:4444
 
     steps:
-      # 1. Checkout du repo
-      - uses: actions/checkout@v3
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      # 2. Setup Node.js
+      # 2️⃣ Setup Node
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      # 3. Installer les dépendances
+      # 3️⃣ Install dependencies
       - name: Install dependencies
         run: npm install
 
-      # 4. Lancer le serveur en arrière-plan
+      # 4️⃣ Start server in background and wait until ready
       - name: Start web server
-        run: npm start &
-      
-      # 5. Attendre que le serveur soit prêt
-      - name: Wait for web service
         run: |
-          echo "Waiting for server to be ready..."
+          npm start &
+          # Attendre que le serveur écoute sur le port 3000
           for i in {1..30}; do
-            if curl -s http://localhost:3000/ > /dev/null; then
-              echo "Server is up!"
+            if nc -z localhost 3000; then
+              echo "Server ready!"
               break
             fi
-            echo "Waiting..."
-            sleep 5
+            echo "Waiting for server..."
+            sleep 2
           done
 
-      # 6. Setup Python et Selenium
+      # 5️⃣ Setup Python (pour Selenium / pytest)
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
+      # 6️⃣ Install Python dependencies
       - name: Install Python dependencies
-        run: python -m pip install -r requirements.txt
+        run: pip install -r requirements.txt
 
-      # 7. Lancer les tests Selenium
+      # 7️⃣ Run tests
       - name: Run Selenium tests
-        run: pytest -v test_scenarios.py
+        run: pytest --maxfail=1 --disable-warnings -q
