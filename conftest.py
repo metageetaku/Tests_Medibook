@@ -1,17 +1,14 @@
 import pytest
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-import chromedriver_autoinstaller
 
 @pytest.fixture
 def browser():
-    # Installe automatiquement le ChromeDriver compatible
-    chromedriver_autoinstaller.install()
-
     options = Options()
-    options.add_argument("--headless=new")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--headless=new")  # Mode headless
+    options.add_argument("--no-sandbox")    # GitHub Actions spécifique
+    options.add_argument("--disable-dev-shm-usage")  # GitHub Actions spécifique
 
     driver = webdriver.Chrome(options=options)
     yield driver
