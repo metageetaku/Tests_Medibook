@@ -1,3 +1,4 @@
+import os
 from pages.search_page import SearchPage
 from pages.register_page import RegisterPage
 from pages.practitioner_page import PractitionerPage
@@ -6,8 +7,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 
-# URL du frontend pour GitHub Actions (utilise localhost)
-FRONTEND_URL = "http://localhost:3000"
+# URL dynamique : localhost en local, "frontend" dans GitHub Actions
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
 
 def test_inscription_reussie(browser: WebDriver):
     """Test 1 : Inscription réussie"""
@@ -31,6 +33,7 @@ def test_inscription_reussie(browser: WebDriver):
     assert "Compte créé avec succès" in message, \
         f"Le message de succès attendu n'a pas été trouvé. Message reçu : {message}"
 
+
 def test_email_deja_utilise(browser: WebDriver):
     """Test 2 : Email déjà utilisé"""
     register = RegisterPage(browser, FRONTEND_URL)
@@ -52,6 +55,7 @@ def test_email_deja_utilise(browser: WebDriver):
     message = message_element.text
     assert "Un compte existe déjà avec cet email" in message, \
         f"Le message d'erreur attendu n'a pas été trouvé. Message reçu : {message}"
+
 
 def test_recherche_praticien_par_specialite_et_ville(browser: WebDriver):
     """Recherche par spécialité et ville"""
@@ -79,6 +83,7 @@ def test_recherche_praticien_par_specialite_et_ville(browser: WebDriver):
         assert "Paris" in city, \
             f"La ville est incorrecte. Reçue : {city}"
 
+
 def test_recherche_praticien_sans_resultat(browser: WebDriver):
     """Recherche sans résultat"""
     search = SearchPage(browser, FRONTEND_URL)
@@ -95,6 +100,7 @@ def test_recherche_praticien_sans_resultat(browser: WebDriver):
 
     assert "Aucun praticien" in browser.find_element(By.TAG_NAME, "body").text, \
         "Le message 'Aucun praticien' n'a pas été trouvé."
+
 
 def test_reservation_creneau(browser: WebDriver):
     """Test : Réservation d'un créneau pour un rendez-vous"""
