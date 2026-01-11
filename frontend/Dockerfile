@@ -1,18 +1,18 @@
-FROM node:20-alpine
+# Image Node.js légère
+FROM node:18-alpine
 
+# Dossier de travail
 WORKDIR /app
 
-# Copier les fichiers de dépendances
+# Installation des dépendances
 COPY package*.json ./
-
-# Installer les dépendances
 RUN npm install
 
-# Copier le code source
+# Copie du code source
 COPY . .
 
-# Exposer le port
+# Exposition du port
 EXPOSE 3000
 
-# Commande de démarrage
-CMD ["npm", "start"]
+# Démarrage du serveur React en mode réseau
+CMD ["npm", "start", "--", "--host", "0.0.0.0"]
