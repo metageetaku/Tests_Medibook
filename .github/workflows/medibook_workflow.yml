@@ -41,7 +41,7 @@ jobs:
         working-directory: ./
         run: docker compose up -d
 
-      # --- Debug réseau (optionnel mais utile) ---
+      # --- Debug réseau pour vérifier que les conteneurs existent ---
       - name: Debug Docker network
         working-directory: ./
         run: |
