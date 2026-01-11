@@ -41,6 +41,17 @@ jobs:
         working-directory: ./
         run: docker compose up -d
 
+      # --- Debug réseau (optionnel mais utile) ---
+      - name: Debug Docker network
+        working-directory: ./
+        run: |
+          echo "--- Networks ---"
+          docker network ls
+          echo "--- Containers in medibook-network ---"
+          docker network inspect medibook-network || true
+          echo "--- Running containers ---"
+          docker ps -a
+
       # --- Attente API ---
       - name: Wait for API to be ready
         working-directory: ./
