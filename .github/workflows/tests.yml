@@ -7,23 +7,45 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    runs-on: windows-latest
+  selenium-tests:
+    runs-on: ubuntu-latest
+    services:
+      web:
+        image: node:18
+        ports:
+          - 3000:3000
+        options: >-
+          --health-cmd "curl -f http://localhost:3000/ || exit 1"
+          --health-interval 5s
+          --health-timeout 2s
+          --health-retries 12
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Install Node dependencies & start app
+        run: |
+          npm install
+          npm start &
+          # On attend que le serveur soit prêt
+          echo "Waiting for server..."
+          for i in {1..30}; do
+            if curl -s http://localhost:3000/ > /dev/null; then
+              echo "Server is up!"
+              break
+            fi
+            echo "Server not ready yet, retrying..."
+            sleep 2
+          done
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: 3.11
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install selenium pytest
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
 
       - name: Run Selenium tests
-        run: |
-          pytest
+        run: pytest -v
