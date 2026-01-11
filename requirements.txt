@@ -3,5 +3,4 @@ selenium
 webdriver-manager
 pytest-html
 docker
-docker-compose
 requests
