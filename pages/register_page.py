@@ -4,11 +4,13 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 class RegisterPage:
-    """Page Object minimal pour la page d'inscription"""
-
-    def __init__(self, browser):
+    def __init__(self, browser, base_url):
         self.browser = browser
-        self.wait = WebDriverWait(browser, 10)
+        self.base_url = base_url
+
+    def open(self):
+        self.browser.get(f"{self.base_url}/register")
+
 
     def open(self):
         """Ouvre la page d'inscription"""
