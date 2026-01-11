@@ -1,54 +1,47 @@
-name: CI Medibook
+name: Tests Medibook
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   test:
     runs-on: ubuntu-latest
     services:
-      selenium:
-        image: selenium/standalone-firefox:latest
+      postgres:
+        image: postgres:15-alpine
         ports:
-          - 4444:4444
+          - 5432:5432
+        env:
+          POSTGRES_USER: medibook
+          POSTGRES_PASSWORD: medibook123
+          POSTGRES_DB: medibook
+        options: >-
+          --health-cmd="pg_isready -U medibook -d medibook"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-          pip install selenium pytest pytest-html
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
-
-      - name: Start services
+      - name: Install Python dependencies
         run: |
-          docker compose -f docker-compose.yml up -d db mailhog api frontend
-          # attendre que PostgreSQL soit prêt
-          echo "Waiting for PostgreSQL..."
-          until docker compose exec db pg_isready -U medibook -d medibook; do
-            sleep 2
-          done
-          echo "PostgreSQL ready."
+          pip install selenium pytest pytest-html psycopg2-binary
 
       - name: Run tests
         env:
-          SELENIUM_URL: http://selenium:4444/wd/hub
-        run: |
-          pytest -v --tb=short
-
-      - name: Tear down
-        if: always()
-        run: docker compose down
+          DATABASE_URL: postgresql://medibook:medibook123@localhost:5432/medibook
+        run: pytest -v --tb=short
