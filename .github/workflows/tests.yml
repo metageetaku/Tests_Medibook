@@ -2,50 +2,68 @@ name: Selenium Firefox Tests
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  selenium-tests:
+  e2e-tests:
     runs-on: ubuntu-latest
+
     services:
+      # Service Docker pour Node.js (ton appli)
       web:
-        image: node:18
+        image: node:18-bullseye
         ports:
           - 3000:3000
         options: >-
           --health-cmd "curl -f http://localhost:3000/ || exit 1"
-          --health-interval 5s
-          --health-timeout 2s
-          --health-retries 12
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 30
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # 1. Checkout du repo
+      - uses: actions/checkout@v3
 
-      - name: Install Node dependencies & start app
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      # 3. Installer les dépendances
+      - name: Install dependencies
+        run: npm install
+
+      # 4. Lancer le serveur en arrière-plan
+      - name: Start web server
+        run: npm start &
+      
+      # 5. Attendre que le serveur soit prêt
+      - name: Wait for web service
         run: |
-          npm install
-          npm start &
-          # On attend que le serveur soit prêt
-          echo "Waiting for server..."
+          echo "Waiting for server to be ready..."
           for i in {1..30}; do
             if curl -s http://localhost:3000/ > /dev/null; then
               echo "Server is up!"
               break
             fi
-            echo "Server not ready yet, retrying..."
-            sleep 2
+            echo "Waiting..."
+            sleep 5
           done
 
-      - name: Set up Python
+      # 6. Setup Python et Selenium
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.11
 
       - name: Install Python dependencies
-        run: pip install -r requirements.txt
+        run: python -m pip install -r requirements.txt
 
+      # 7. Lancer les tests Selenium
       - name: Run Selenium tests
-        run: pytest -v
+        run: pytest -v test_scenarios.py
