@@ -14,19 +14,34 @@ class SearchPage:
         self.browser.get(f"{self.base_url}/search")
         self.wait.until(EC.presence_of_element_located((By.ID, "specialty")))
 
+    def _safe_click(self, locator):
+        """Scroll + attente + clic JS fallback (méthode fiable en CI)"""
+        element = self.wait.until(EC.element_to_be_clickable(locator))
+
+        # Scroll vers l'élément
+        self.browser.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
+
+        try:
+            element.click()
+        except:
+            # Fallback ultime si un overlay bloque le clic
+            self.browser.execute_script("arguments[0].click();", element)
+
     def select_specialty(self, text):
         """Sélectionne une spécialité dans la liste déroulante"""
-        Select(self.browser.find_element(By.ID, "specialty")).select_by_visible_text(text)
+        dropdown = self.wait.until(EC.presence_of_element_located((By.ID, "specialty")))
+        Select(dropdown).select_by_visible_text(text)
 
     def enter_city(self, city):
         """Saisit une ville dans le champ de recherche"""
-        field = self.browser.find_element(By.ID, "city")
+        field = self.wait.until(EC.presence_of_element_located((By.ID, "city")))
         field.clear()
         field.send_keys(city)
 
     def submit(self):
         """Clique sur le bouton Rechercher"""
-        self.browser.find_element(By.XPATH, "//button[contains(text(),'Rechercher')]").click()
+        locator = (By.CSS_SELECTOR, "button[type='submit']")
+        self._safe_click(locator)
 
     def get_results(self):
         """Retourne la liste des résultats trouvés"""

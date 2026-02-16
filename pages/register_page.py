@@ -31,24 +31,33 @@ class RegisterPage:
         self.browser.find_element(By.ID, "confirmPassword").clear()
         self.browser.find_element(By.ID, "confirmPassword").send_keys(password)
 
+    def _safe_click(self, locator):
+        """Scroll + attente + clic JS fallback (méthode fiable en CI)"""
+        element = self.wait.until(EC.element_to_be_clickable(locator))
+
+        # Scroll vers l'élément
+        self.browser.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
+
+        try:
+            element.click()
+        except:
+            # Fallback ultime si un overlay bloque le clic
+            self.browser.execute_script("arguments[0].click();", element)
+
     def accept_terms(self):
         """Coche la case des CGU"""
-        self.browser.find_element(
-            By.XPATH,
-            "/html/body/div/div[1]/main/div/div/form/div[6]/label/input"
-        ).click()
+        locator = (By.CSS_SELECTOR, "input[type='checkbox']")
+        self._safe_click(locator)
 
     def submit(self):
         """Clique sur le bouton d'inscription"""
-        self.browser.find_element(
-            By.XPATH,
-            "/html/body/div/div[1]/main/div/div/form/button"
-        ).click()
+        locator = (By.CSS_SELECTOR, "button[type='submit']")
+        self._safe_click(locator)
 
     def get_message(self):
         """Récupère le message de succès ou d'erreur"""
         return self.wait.until(
             EC.presence_of_element_located(
-                (By.XPATH, "/html/body/div/div[1]/main/div/div/div[2]/span")
+                (By.CSS_SELECTOR, "main div span")
             )
         ).text
