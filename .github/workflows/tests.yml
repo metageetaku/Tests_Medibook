@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   selenium-tests:
@@ -11,11 +12,13 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
+      # 1) Créer un réseau Docker partagé (utilisé par Selenium + docker-compose)
       - name: Create shared Docker network
         run: docker network create medibook-network || true
 
+      # 2) Lancer Selenium sur le même réseau
       - name: Start Selenium container
         run: |
           docker run -d \
@@ -25,6 +28,7 @@ jobs:
             --shm-size=2g \
             selenium/standalone-chrome:115.0
 
+      # 3) Installer Python pour exécuter les tests
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -33,12 +37,21 @@ jobs:
       - name: Install test requirements
         run: python -m pip install -r backend/tests/requirements.txt
 
+      # 4) Lancer docker-compose sur le réseau partagé
       - name: Start Docker Compose services
-        working-directory: ./
-        run: docker compose up -d
+        run: |
+          docker compose down -v || true
+          docker compose up -d --build
 
+      # 5) Attacher les services au réseau medibook-network
+      - name: Attach services to shared network
+        run: |
+          docker network connect medibook-network medibook-frontend || true
+          docker network connect medibook-network medibook-api || true
+          docker network connect medibook-network medibook-database || true
+
+      # 6) Debug réseau (super utile si un test échoue)
       - name: Debug Docker network
-        working-directory: ./
         run: |
           echo "--- Networks ---"
           docker network ls
@@ -47,38 +60,38 @@ jobs:
           echo "--- Running containers ---"
           docker ps -a
 
+      # 7) Attendre que l'API soit prête
       - name: Wait for API to be ready
-        working-directory: ./
         run: |
           echo "Waiting for API..."
           timeout 300 bash -c 'until curl -s http://localhost:4000/health; do sleep 5; done'
 
+      # 8) Attendre que le frontend soit prêt
       - name: Wait for frontend to be ready
-        working-directory: ./
         run: |
           echo "Waiting for frontend..."
-          timeout 300 bash -c 'until curl -s http://frontend:3000; do sleep 5; done'
+          timeout 300 bash -c 'until curl -s http://localhost:3000; do sleep 5; done'
 
+      # 9) Logs en cas d’échec
       - name: Show frontend logs
         if: failure()
-        working-directory: ./
         run: docker logs medibook-frontend
 
       - name: Show API logs
         if: failure()
-        working-directory: ./
         run: docker logs medibook-api
 
+      # 10) Lancer les tests Selenium
       - name: Run Selenium tests
         env:
-          FRONTEND_URL: http://frontend:3000
+          FRONTEND_URL: http://medibook-frontend:3000
           SELENIUM_REMOTE_URL: http://selenium:4444/wd/hub
         run: |
           python -m pytest test_scenarios.py -v --tb=short
 
+      # 11) Nettoyage
       - name: Shut down Docker Compose services
         if: always()
-        working-directory: ./
         run: docker compose down -v
 
       - name: Stop Selenium
